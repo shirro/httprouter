@@ -5,7 +5,9 @@
 package httprouter
 
 import (
+	"bytes"
 	"errors"
+	"strings"
 )
 
 func min(a, b int) int {
@@ -191,7 +193,6 @@ func (n *node) insertRoute(key string, value HandlerFunc) error {
 // given path.
 func (n *node) getValue(key string) (value HandlerFunc, vars map[string]string, tsr bool) {
 	// Walk tree nodes
-OUTER:
 	for len(key) >= len(n.key) && key[:len(n.key)] == n.key {
 		key = key[len(n.key):]
 
@@ -203,12 +204,10 @@ OUTER:
 
 			// No handler found. Check if a handler for this path + a
 			// trailing slash exists for TSR recommendation
-			for i, index := range n.indices {
-				if index == '/' {
-					n = n.children[i]
-					tsr = (n.key == "/" && n.value != nil)
-					return
-				}
+			if i := bytes.IndexByte(n.indices, '/'); i >= 0 {
+				n = n.children[i]
+				tsr = (n.key == "/" && n.value != nil)
+				return
 			}
 			return
 
@@ -217,10 +216,10 @@ OUTER:
 
 			if n.isParam {
 				// find param end (either '/'' or key end)
-				k := 0
 				l := len(key)
-				for k < l && key[k] != '/' {
-					k++
+				k := strings.IndexByte(key, '/')
+				if k == -1 {
+					k = l
 				}
 
 				// save param value
@@ -271,13 +270,9 @@ OUTER:
 			}
 
 		} else {
-			c := key[0]
-
-			for i, index := range n.indices {
-				if c == index {
-					n = n.children[i]
-					continue OUTER
-				}
+			if i := bytes.IndexByte(n.indices, key[0]); i >= 0 {
+				n = n.children[i]
+				continue
 			}
 
 			// Nothing found. We can recommend to redirect to the same URL without
