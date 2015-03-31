@@ -285,6 +285,19 @@ func (r *Router) Lookup(method, path string) (Handle, Params, bool) {
 	return nil, nil, false
 }
 
+// LookupMethods allows the manual lookup of all methods for a path combo.
+// This may be useful to build 405 Allow and CORS headers
+// It returns a slice of methods that match the path.
+func (r *Router) LookupMethods(path string) []string {
+	var methods []string
+	for method, root := range r.trees {
+		if handle, _, _ := root.getValue(path); handle != nil {
+			methods = append(methods, method)
+		}
+	}
+	return methods
+}
+
 // ServeHTTP makes the router implement the http.Handler interface.
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if r.PanicHandler != nil {

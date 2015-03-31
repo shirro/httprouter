@@ -339,6 +339,50 @@ func TestRouterLookup(t *testing.T) {
 	}
 }
 
+func TestRouterLookupMethod(t *testing.T) {
+	wantHandle := func(_ http.ResponseWriter, _ *http.Request, _ Params) {
+	}
+
+	router := New()
+
+	// try empty router first
+	methods := router.LookupMethods("/nope")
+	if methods != nil {
+		t.Fatalf("Got methods for unregistered pattern: %v", methods)
+	}
+
+	// insert route and try again
+	router.GET("/user/:name", wantHandle)
+	router.DELETE("/user/:name", wantHandle)
+
+	methods = router.LookupMethods("/user/gopher")
+	if methods == nil {
+		t.Fatal("Got no methods!")
+	}
+
+	if len(methods) != 2 {
+		t.Fatalf("Expecting 2 methods and got %v", len(methods))
+	}
+
+	get := false
+	del := false
+	for _, m := range methods {
+		switch m {
+		case "GET":
+			if get {
+				t.Fatal("Too many GET")
+			}
+			get = true
+		case "DELETE":
+			if del {
+				t.Fatal("Too many DELETE")
+			}
+		default:
+			t.Fatalf("Found invalid method: %v", m)
+		}
+	}
+}
+
 type mockFileSystem struct {
 	opened bool
 }
